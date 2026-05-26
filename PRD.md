@@ -1,37 +1,40 @@
-# PRD — [Product Name]
+# PRD — StudyLog
 
 ## 1. Overview
 
-- **Product**: [Product Name]
+- **Product**: StudyLog — 하루 할 일 & 스터디 플래너
 - **Stage**: MVP (Session 1)
 - **Stack**: Next.js · TypeScript · Tailwind CSS
 
 ## 2. Problem
 
-[target user]는 [problem]이라는 문제를 겪고 있다.
-기존 해결책은 [기존 대안]이지만 [한계점]이 있다.
+공부하는 사람들은 오늘 할 일과 시간별 학습 일정을 한 곳에서 관리하기 어렵다.
+기존 메모 앱이나 캘린더는 너무 복잡하거나, 할 일 체크와 시간 기록을 동시에 하기 불편하다.
 
 ## 3. Solution
 
-[core action]을 통해 [target user]가 [desired outcome]을 달성할 수 있도록 돕는다.
+하루 단위로 할 일 체크리스트와 시간별 일정을 함께 기록할 수 있는 간단한 플래너를 제공한다.
+"오늘 뭘 했는지"를 한눈에 확인할 수 있게 돕는다.
 
 ## 4. Target User
 
-- **주요 사용자**: [target user]
-- **사용 맥락**: [usage context]
+- **주요 사용자**: 강의를 듣거나 자기계발 중인 학습자
+- **사용 맥락**: 매일 공부 시작 전 일정 계획, 공부 후 완료 체크
 
 ## 5. Core Features (MVP)
 
 | # | Feature | Priority | Note |
 |---|---------|----------|------|
-| 1 | [feature 1] | Must | |
-| 2 | [feature 2] | Must | |
-| 3 | [feature 3] | Should | |
+| 1 | 할 일 추가 / 완료 체크 / 삭제 | Must | 오늘 날짜 기준 |
+| 2 | 시간별 일정 기록 (시간 + 내용) | Must | 예) 14:00 리액트 강의 수강 |
+| 3 | 완료 항목 시각적 구분 (취소선) | Must | |
+| 4 | 로컬 스토리지 저장 (새로고침 유지) | Should | 별도 서버 없이 |
+| 5 | 날짜별 데이터 분리 | Could | MVP 이후 고려 |
 
 ## 6. Out of Scope
 
 - 결제
-- 복잡한 인증
+- 복잡한 인증 (로그인)
 - 실시간 협업
 - 대용량 파일 업로드
 - 다수 외부 API 연동
@@ -40,15 +43,16 @@
 
 | Path | Description |
 |------|-------------|
-| `/` | Landing page |
-| `/app` | Main app page |
+| `/` | 서비스 소개 랜딩 페이지 |
+| `/app` | 플래너 메인 화면 |
 
 ## 8. Success Metrics
 
-- [metric 1]
-- [metric 2]
+- 앱 페이지에서 할 일을 추가하고 체크할 수 있다
+- 시간별 일정을 입력하고 목록으로 확인할 수 있다
+- 새로고침 후에도 데이터가 유지된다
 
 ## 9. Open Questions
 
-- [ ] [question 1]
-- [ ] [question 2]
+- [ ] 날짜 이동 기능이 MVP에 필요한가? (어제 / 오늘 / 내일)
+- [ ] 다크모드 지원 여부
