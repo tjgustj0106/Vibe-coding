@@ -9,21 +9,30 @@ import { mockTasks } from "../mock-data";
 type Filter = TaskStatus | "all";
 
 export function useTasks(selectedDate: string) {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (typeof window === "undefined") return mockTasks;
-    const raw = localStorage.getItem("studylog_tasks");
-    if (raw === null) return mockTasks; // 첫 방문 → mock data
-    try {
-      return JSON.parse(raw) as Task[];
-    } catch {
-      return mockTasks;
-    }
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
 
+  // 클라이언트 마운트 후 localStorage 로드 (SSR hydration mismatch 방지)
   useEffect(() => {
+    const raw = localStorage.getItem("studylog_tasks");
+    if (raw === null) {
+      setTasks(mockTasks); // 첫 방문 → mock data
+    } else {
+      try {
+        setTasks(JSON.parse(raw) as Task[]);
+      } catch {
+        setTasks(mockTasks);
+      }
+    }
+    setHydrated(true);
+  }, []);
+
+  // hydrate 완료 후에만 저장 (초기 빈 배열로 덮어쓰기 방지)
+  useEffect(() => {
+    if (!hydrated) return;
     saveTasks(tasks);
-  }, [tasks]);
+  }, [tasks, hydrated]);
 
   const dailyTasks = useMemo(
     () => getTasksForDate(tasks, selectedDate),
