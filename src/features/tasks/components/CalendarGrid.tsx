@@ -31,30 +31,51 @@ function getMonthGrid(year: number, month: number): string[] {
 }
 
 /**
- * 특정 날짜에 걸쳐있는 과제(기간 바 표시용)를 계산한다.
- * - 기간: createdAt ~ dueDate
- * - isStart: 실제 시작일 → 왼쪽 둥근 캡
- * - isEnd: 실제 마감일 → 오른쪽 둥근 캡
- * - 주 경계(column=0/6)에서는 캡 없이 연결되는 것처럼 보임
+ * 한 주(7칸) 안에서 과제마다 일관된 슬롯(행)을 배정한다.
+ * - createdAt 오름차순 정렬 → 가장 오래된 과제가 슬롯 0
+ * - 같은 과제는 주 전체에서 항상 같은 행에 표시됨
+ * Returns: date → SpanTask[] (슬롯 정보 포함)
  */
-function getSpanTasksForCell(
+function computeWeekSpanTasks(
   tasks: Task[],
-  date: string,
-  column: number
-): SpanTask[] {
-  if (!date) return [];
-  return tasks
-    .filter(
-      (t) =>
-        t.dueDate &&
-        t.createdAt.slice(0, 10) <= date &&
-        date <= t.dueDate
-    )
-    .map((t) => ({
-      task: t,
-      isStart: date === t.createdAt.slice(0, 10),
-      isEnd: date === t.dueDate,
-    }));
+  weekDates: string[]
+): Map<string, SpanTask[]> {
+  const validDates = weekDates.filter(Boolean);
+  if (validDates.length === 0) return new Map();
+
+  const weekStart = validDates[0];
+  const weekEnd = validDates[validDates.length - 1];
+
+  // 이 주에 걸쳐있는 과제 수집
+  const spanning = tasks.filter(
+    (t) =>
+      t.dueDate &&
+      t.createdAt.slice(0, 10) <= weekEnd &&
+      weekStart <= t.dueDate
+  );
+
+  // createdAt 오름차순 정렬 → 슬롯 번호 일관성 보장
+  const sorted = [...spanning].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt)
+  );
+  const slotMap = new Map(sorted.map((t, i) => [t.id, i]));
+
+  // 날짜별 SpanTask 목록 생성
+  const result = new Map<string, SpanTask[]>();
+  for (const date of validDates) {
+    const dayTasks: SpanTask[] = sorted
+      .filter(
+        (t) => t.createdAt.slice(0, 10) <= date && date <= t.dueDate!
+      )
+      .map((t) => ({
+        task: t,
+        isStart: date === t.createdAt.slice(0, 10),
+        isEnd: date === t.dueDate,
+        slot: slotMap.get(t.id) ?? 0,
+      }));
+    result.set(date, dayTasks);
+  }
+  return result;
 }
 
 function getEventsForDate(events: ScheduleEvent[], date: string): ScheduleEvent[] {
@@ -74,8 +95,19 @@ export default function CalendarGrid({
 
   const cells = useMemo(() => getMonthGrid(year, month), [year, month]);
 
-  // 모달용 데이터: 바 표시 기준과 동일하게 span 로직 사용
-  // (getTasksForDate는 과거 날짜를 제외하므로 달력 바와 불일치 발생)
+  // 주(week) 단위 슬롯 계산
+  const weekSpanTasksMap = useMemo(() => {
+    const result = new Map<string, SpanTask[]>();
+    const weekCount = Math.ceil(cells.length / 7);
+    for (let w = 0; w < weekCount; w++) {
+      const weekDates = cells.slice(w * 7, (w + 1) * 7);
+      const weekMap = computeWeekSpanTasks(tasks, weekDates);
+      weekMap.forEach((spanTasks, date) => result.set(date, spanTasks));
+    }
+    return result;
+  }, [tasks, cells]);
+
+  // 모달용 데이터: 달력 바와 동일한 span 로직 사용
   const modalTasks = useMemo(() => {
     if (!modalDate) return [];
     return tasks.filter((t) =>
@@ -138,7 +170,7 @@ export default function CalendarGrid({
             date={date}
             today={today}
             selectedDate={selectedDate}
-            spanTasks={date ? getSpanTasksForCell(tasks, date, i % 7) : []}
+            spanTasks={date ? (weekSpanTasksMap.get(date) ?? []) : []}
             dayEvents={date ? getEventsForDate(events, date) : []}
             onClick={setModalDate}
           />

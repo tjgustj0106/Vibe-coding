@@ -5,6 +5,7 @@ import { ScheduleEvent } from "../../schedule/types";
 
 // 색상 팔레트 (과목명 해시 기반)
 const SPAN_COLORS = ["#0066cc", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
+const MAX_BARS = 4;
 
 function spanColor(subject?: string): string {
   if (!subject) return SPAN_COLORS[0];
@@ -17,13 +18,14 @@ export type SpanTask = {
   task: Task;
   isStart: boolean; // 실제 시작일 (왼쪽 캡)
   isEnd: boolean;   // 실제 마감일 (오른쪽 캡)
+  slot: number;     // 주(week) 단위 고정 슬롯 번호 → 같은 과제는 항상 같은 행
 };
 
 type CalendarDayCellProps = {
   date: string;        // YYYY-MM-DD, empty = 빈 칸
   today: string;
   selectedDate: string;
-  spanTasks: SpanTask[];      // 이 날에 걸쳐있는 과제 바
+  spanTasks: SpanTask[];      // 이 날에 걸쳐있는 과제 바 (슬롯 정보 포함)
   dayEvents: ScheduleEvent[]; // 이 날의 시간 일정
   onClick: (date: string) => void;
 };
@@ -44,6 +46,12 @@ export default function CalendarDayCell({
   const isToday = date === today;
   const isSelected = date === selectedDate;
 
+  // MAX_BARS 이내 슬롯만 표시, 초과분은 +N
+  const visible = spanTasks.filter((st) => st.slot < MAX_BARS);
+  const overflow = spanTasks.filter((st) => st.slot >= MAX_BARS).length;
+  const slotToTask = new Map(visible.map((st) => [st.slot, st]));
+  const maxSlot = visible.length > 0 ? Math.max(...visible.map((st) => st.slot)) : -1;
+
   return (
     <button
       onClick={() => onClick(date)}
@@ -59,28 +67,38 @@ export default function CalendarDayCell({
         {day}
       </span>
 
-      {/* 과제 기간 바 + 일정 점 */}
+      {/* 슬롯 기반 기간 바 */}
       <div className="w-full flex flex-col gap-0.5 overflow-hidden">
-        {/* 과제 기간 바 (최대 3개, 초과 시 +N 표시) */}
-        {spanTasks.slice(0, 3).map(({ task, isStart, isEnd }) => (
-          <div
-            key={task.id}
-            title={task.title}
-            className={`h-1 flex-shrink-0 ${
-              isStart && isEnd
-                ? "rounded-full mx-0.5"
-                : isStart
-                ? "rounded-l-full ml-0.5"
-                : isEnd
-                ? "rounded-r-full mr-0.5"
-                : ""
-            } ${task.status === "done" ? "opacity-40" : ""}`}
-            style={{ backgroundColor: spanColor(task.subject) }}
-          />
-        ))}
-        {spanTasks.length > 3 && (
+        {maxSlot >= 0 &&
+          Array.from({ length: maxSlot + 1 }, (_, slotIdx) => {
+            const st = slotToTask.get(slotIdx);
+            if (!st) {
+              // 빈 슬롯: 다른 날짜에서 연속된 바가 이 날엔 없음 → 공간 유지
+              return <div key={slotIdx} className="h-1 flex-shrink-0" />;
+            }
+            const { task, isStart, isEnd } = st;
+            return (
+              <div
+                key={task.id}
+                title={task.title}
+                className={`h-1 flex-shrink-0 ${
+                  isStart && isEnd
+                    ? "rounded-full mx-0.5"
+                    : isStart
+                    ? "rounded-l-full ml-0.5"
+                    : isEnd
+                    ? "rounded-r-full mr-0.5"
+                    : ""
+                } ${task.status === "done" ? "opacity-40" : ""}`}
+                style={{ backgroundColor: spanColor(task.subject) }}
+              />
+            );
+          })}
+
+        {/* 4개 초과 시 +N 표시 */}
+        {overflow > 0 && (
           <span className="text-[7px] text-[#6e6e73] leading-none px-0.5">
-            +{spanTasks.length - 3}
+            +{overflow}
           </span>
         )}
 
