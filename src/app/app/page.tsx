@@ -5,10 +5,13 @@ import AppHeader from "@/components/layout/AppHeader";
 import DayNavigator from "@/features/tasks/components/DayNavigator";
 import TaskList from "@/features/tasks/components/TaskList";
 import TaskForm from "@/features/tasks/components/TaskForm";
+import ScheduleTimeline from "@/features/schedule/components/ScheduleTimeline";
 import { mockTasks } from "@/features/tasks/mock-data";
 import { getTasks, saveTasks } from "@/features/tasks/storage";
+import { getEvents, saveEvents } from "@/features/schedule/storage";
 import { getTodayString, getTasksForDate } from "@/features/tasks/utils";
 import { Task, TaskStatus } from "@/features/tasks/types";
+import { ScheduleEvent } from "@/features/schedule/types";
 
 type View = "daily" | "monthly";
 type Filter = TaskStatus | "all";
@@ -31,10 +34,15 @@ export default function AppPage() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [modalTask, setModalTask] = useState<Task | null>(null);
+  const [events, setEvents] = useState<ScheduleEvent[]>(() => getEvents());
 
   useEffect(() => {
     saveTasks(tasks);
   }, [tasks]);
+
+  useEffect(() => {
+    saveEvents(events);
+  }, [events]);
 
   const dailyTasks = useMemo(
     () => getTasksForDate(tasks, selectedDate),
@@ -93,6 +101,24 @@ export default function AppPage() {
     setModalTask(null);
   }
 
+  function handleAddEvent(input: Omit<ScheduleEvent, "id" | "createdAt" | "updatedAt">) {
+    const now = new Date().toISOString();
+    setEvents((prev) => [...prev, { ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now }]);
+  }
+
+  function handleUpdateEvent(updated: ScheduleEvent) {
+    setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+  }
+
+  function handleDeleteEvent(id: string) {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  const dailyEvents = useMemo(
+    () => events.filter((e) => e.date === selectedDate),
+    [events, selectedDate]
+  );
+
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
       <AppHeader currentView={currentView} onViewChange={setCurrentView} />
@@ -121,6 +147,13 @@ export default function AppPage() {
                 + 추가
               </button>
             </div>
+            <ScheduleTimeline
+              date={selectedDate}
+              events={dailyEvents}
+              onAdd={handleAddEvent}
+              onUpdate={handleUpdateEvent}
+              onDelete={handleDeleteEvent}
+            />
             <TaskList
               tasks={dailyTasks}
               filter={filter}
