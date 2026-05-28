@@ -110,7 +110,9 @@ test("AC-004: 항목 클릭 시 상세 모달이 열린다", async ({ page }) =>
 // Then  마감일에 해당 항목이 달력에 표시된다
 // ---------------------------------------------------------------------------
 test("AC-005: 월간 달력에서 오늘 마감 항목이 표시되고 모달로 확인된다", async ({ page }) => {
-  const today = new Date().toISOString().slice(0, 10);
+  // 앱의 getTodayString()과 동일하게 로컬 시간 기준으로 계산 (UTC 기준이면 KST 오전 9시 이전 불일치)
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   await page.getByTestId("open-task-form").click();
   await page.locator("#task-title").fill("달력 표시 과제");
@@ -151,4 +153,32 @@ test("AC-006: 완료 필터 선택 시 완료 항목만 표시된다", async ({ 
 
   await expect(page.getByText("완료할 할 일")).toBeVisible();
   await expect(page.getByText("미완료 할 일")).not.toBeVisible();
+});
+
+// ---------------------------------------------------------------------------
+// AC-007: 달력에서 일정 추가
+// Given 월간 뷰에서 날짜 셀을 클릭했을 때
+// When  모달의 "+ 추가" 버튼으로 일정을 등록하면
+// Then  모달 일정 목록에 해당 일정이 표시된다
+// ---------------------------------------------------------------------------
+test("AC-007: 달력 모달에서 일정을 추가하면 모달 내 목록에 표시된다", async ({ page }) => {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  // 월간 뷰로 전환
+  await page.getByRole("button", { name: "월간 뷰" }).click();
+
+  // 오늘 날짜 셀 클릭 → 모달 오픈
+  const todayCell = page.getByRole("button", { name: new RegExp(`${today}`) }).first();
+  await todayCell.click();
+
+  // 모달의 "+ 추가" 버튼 클릭
+  await page.getByRole("button", { name: "+ 추가", exact: true }).click();
+
+  // 일정 추가 폼에 제목 입력 후 저장
+  await page.locator("#event-title").fill("동생 생일");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+
+  // 모달 일정 목록에 표시 확인
+  await expect(page.getByText("동생 생일")).toBeVisible();
 });
