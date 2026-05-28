@@ -5,6 +5,7 @@ import AppHeader from "@/components/layout/AppHeader";
 import DayNavigator from "@/features/tasks/components/DayNavigator";
 import TaskList from "@/features/tasks/components/TaskList";
 import TaskForm from "@/features/tasks/components/TaskForm";
+import CalendarGrid from "@/features/tasks/components/CalendarGrid";
 import ScheduleTimeline from "@/features/schedule/components/ScheduleTimeline";
 import { mockTasks } from "@/features/tasks/mock-data";
 import { getTasks, saveTasks } from "@/features/tasks/storage";
@@ -27,8 +28,14 @@ export default function AppPage() {
   const [currentView, setCurrentView] = useState<View>("daily");
   const [selectedDate, setSelectedDate] = useState(getTodayString());
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = getTasks();
-    return saved.length > 0 ? saved : mockTasks;
+    if (typeof window === "undefined") return mockTasks;
+    const raw = localStorage.getItem("studylog_tasks");
+    if (raw === null) return mockTasks; // 첫 방문 → mock data 표시
+    try {
+      return JSON.parse(raw) as Task[];
+    } catch {
+      return mockTasks;
+    }
   });
   const [filter, setFilter] = useState<Filter>("all");
   const [showForm, setShowForm] = useState(false);
@@ -164,10 +171,15 @@ export default function AppPage() {
             />
           </>
         ) : (
-          <div className="bg-white rounded-[18px] p-6 text-center text-[#6e6e73]">
-            <p className="text-[17px]">🗓️ 월간 달력</p>
-            <p className="text-sm mt-1">3회차에서 구현합니다</p>
-          </div>
+          <CalendarGrid
+            tasks={tasks}
+            today={getTodayString()}
+            selectedDate={selectedDate}
+            onDateClick={(date) => {
+              setSelectedDate(date);
+              setCurrentView("daily");
+            }}
+          />
         )}
       </main>
 
