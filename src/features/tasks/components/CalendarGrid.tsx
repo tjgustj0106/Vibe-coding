@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo, useState } from "react";
 import { Task } from "../types";
 import CalendarDayCell from "./CalendarDayCell";

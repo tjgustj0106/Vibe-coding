@@ -19,7 +19,7 @@ export default function TaskCard({ task, onToggle, onClickDetail }: TaskCardProp
                    hover:bg-[#0066cc]/10"
       >
         {task.status === "done" && (
-          <span className="w-2.5 h-2.5 rounded-full bg-[#0066cc]" />
+          <span className="text-[#0066cc] text-xs font-bold leading-none">✓</span>
         )}
       </button>
 

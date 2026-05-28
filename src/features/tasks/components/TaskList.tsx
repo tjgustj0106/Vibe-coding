@@ -12,10 +12,11 @@ type TaskListProps = {
   onToggle: (id: string) => void;
   onClickDetail: (task: Task) => void;
   onAdd: () => void;
+  selectedDate: string;
 };
 
 export default function TaskList({
-  tasks, filter, onFilterChange, onToggle, onClickDetail, onAdd,
+  tasks, filter, onFilterChange, onToggle, onClickDetail, onAdd, selectedDate,
 }: TaskListProps) {
   const filtered = tasks.filter((t) => filter === "all" || t.status === filter);
   const sorted = [...filtered].sort((a, b) =>
@@ -26,7 +27,7 @@ export default function TaskList({
     <div className="flex flex-col gap-4">
       <FilterTabs current={filter} onChange={onFilterChange} />
       {sorted.length === 0 ? (
-        <EmptyState onAdd={onAdd} />
+        <EmptyState onAdd={onAdd} selectedDate={selectedDate} />
       ) : (
         <div className="flex flex-col gap-2">
           {sorted.map((task) => (

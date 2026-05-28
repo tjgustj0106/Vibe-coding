@@ -1,9 +1,10 @@
+import { getTodayString } from "../utils";
+
 export default function DeadlineChip({ dueDate }: { dueDate: string }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  const diff = Math.round((due.getTime() - today.getTime()) / 86400000);
+  const today = getTodayString();
+  const todayMs = new Date(today + "T00:00:00").getTime();
+  const dueMs = new Date(dueDate + "T00:00:00").getTime();
+  const diff = Math.round((dueMs - todayMs) / 86400000);
 
   let label = "";
   let style = "bg-[#f5f5f7] text-[#6e6e73]";

@@ -42,7 +42,6 @@ export default function TaskForm({
       dueDate: dueDate || undefined,
       status: (task?.status ?? "todo") as TaskStatus,
     });
-    onClose();
   }
 
   function handleDelete() {
@@ -137,6 +136,9 @@ export default function TaskForm({
         <div className="flex gap-2 justify-end mt-2">
           {mode === "detail" && (
             <>
+              <p className="text-xs text-[#6e6e73] mr-auto self-center">
+                수정하려면 수정 버튼을 누르세요
+              </p>
               <button
                 onClick={handleDelete}
                 className="text-sm text-red-500 px-4 py-2 rounded-full border border-red-200
@@ -167,7 +169,7 @@ export default function TaskForm({
                 className="text-sm text-white bg-[#0066cc] px-4 py-2 rounded-full
                            hover:bg-[#0055b3] transition-transform active:scale-95"
               >
-                저장
+                {mode === "create" ? "추가" : "저장"}
               </button>
             </>
           )}

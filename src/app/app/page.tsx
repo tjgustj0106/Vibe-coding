@@ -1,21 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import AppHeader from "@/components/layout/AppHeader";
 import DayNavigator from "@/features/tasks/components/DayNavigator";
 import TaskList from "@/features/tasks/components/TaskList";
 import TaskForm from "@/features/tasks/components/TaskForm";
 import CalendarGrid from "@/features/tasks/components/CalendarGrid";
 import ScheduleTimeline from "@/features/schedule/components/ScheduleTimeline";
-import { mockTasks } from "@/features/tasks/mock-data";
-import { getTasks, saveTasks } from "@/features/tasks/storage";
-import { getEvents, saveEvents } from "@/features/schedule/storage";
-import { getTodayString, getTasksForDate } from "@/features/tasks/utils";
-import { Task, TaskStatus } from "@/features/tasks/types";
-import { ScheduleEvent } from "@/features/schedule/types";
+import { useTasks } from "@/features/tasks/hooks/useTasks";
+import { useScheduleEvents } from "@/features/schedule/hooks/useScheduleEvents";
+import { getTodayString } from "@/features/tasks/utils";
+import { Task } from "@/features/tasks/types";
 
 type View = "daily" | "monthly";
-type Filter = TaskStatus | "all";
 type FormMode = "create" | "edit" | "detail";
 
 function addDays(dateStr: string, days: number) {
@@ -27,68 +24,21 @@ function addDays(dateStr: string, days: number) {
 export default function AppPage() {
   const [currentView, setCurrentView] = useState<View>("daily");
   const [selectedDate, setSelectedDate] = useState(getTodayString());
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    if (typeof window === "undefined") return mockTasks;
-    const raw = localStorage.getItem("studylog_tasks");
-    if (raw === null) return mockTasks; // 첫 방문 → mock data 표시
-    try {
-      return JSON.parse(raw) as Task[];
-    } catch {
-      return mockTasks;
-    }
-  });
-  const [filter, setFilter] = useState<Filter>("all");
+
+  // Form / modal UI 상태
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
   const [modalTask, setModalTask] = useState<Task | null>(null);
-  const [events, setEvents] = useState<ScheduleEvent[]>(() => getEvents());
 
-  useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+  // 도메인 훅
+  const tasks = useTasks(selectedDate);
+  const schedule = useScheduleEvents(selectedDate);
 
-  useEffect(() => {
-    saveEvents(events);
-  }, [events]);
-
-  const dailyTasks = useMemo(
-    () => getTasksForDate(tasks, selectedDate),
-    [tasks, selectedDate]
-  );
-
-  function handleAdd(input: Omit<Task, "id" | "createdAt" | "updatedAt">) {
-    const now = new Date().toISOString();
-    const newTask: Task = {
-      ...input,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    setTasks((prev) => [newTask, ...prev]);
-  }
-
-  function handleUpdate(updated: Task) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === updated.id
-          ? { ...updated, updatedAt: new Date().toISOString() }
-          : t
-      )
-    );
-  }
-
-  function handleDelete(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }
-
-  function handleToggle(id: string) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? { ...t, status: t.status === "done" ? "todo" : "done", updatedAt: new Date().toISOString() }
-          : t
-      )
-    );
+  // --- Task form handlers ---
+  function handleOpenCreate() {
+    setModalTask(null);
+    setFormMode("create");
+    setShowForm(true);
   }
 
   function handleClickDetail(task: Task) {
@@ -97,34 +47,19 @@ export default function AppPage() {
     setShowForm(true);
   }
 
-  function handleOpenCreate() {
-    setModalTask(null);
-    setFormMode("create");
-    setShowForm(true);
-  }
-
   function handleCloseForm() {
     setShowForm(false);
     setModalTask(null);
   }
 
-  function handleAddEvent(input: Omit<ScheduleEvent, "id" | "createdAt" | "updatedAt">) {
-    const now = new Date().toISOString();
-    setEvents((prev) => [...prev, { ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now }]);
+  function handleFormSubmit(input: Omit<Task, "id" | "createdAt" | "updatedAt">) {
+    if (formMode === "create") {
+      tasks.add(input);
+    } else if (formMode === "edit" && modalTask) {
+      tasks.editSubmit(input, modalTask);
+    }
+    handleCloseForm();
   }
-
-  function handleUpdateEvent(updated: ScheduleEvent) {
-    setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-  }
-
-  function handleDeleteEvent(id: string) {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-  }
-
-  const dailyEvents = useMemo(
-    () => events.filter((e) => e.date === selectedDate),
-    [events, selectedDate]
-  );
 
   return (
     <div className="min-h-screen bg-[#f5f5f7] flex flex-col">
@@ -144,35 +79,37 @@ export default function AppPage() {
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-medium text-[#6e6e73]">
-                할 일 {dailyTasks.filter((t) => t.status === "todo").length}개 남음
+                할 일 {tasks.dailyTasks.filter((t) => t.status === "todo").length}개 남음
               </h2>
               <button
                 onClick={handleOpenCreate}
+                data-testid="open-task-form"
                 className="bg-[#0066cc] text-white text-sm px-4 py-2 rounded-full
                            transition-transform active:scale-95 hover:bg-[#0055b3]"
               >
-                + 추가
+                + 할 일 추가
               </button>
             </div>
             <ScheduleTimeline
               date={selectedDate}
-              events={dailyEvents}
-              onAdd={handleAddEvent}
-              onUpdate={handleUpdateEvent}
-              onDelete={handleDeleteEvent}
+              events={schedule.dailyEvents}
+              onAdd={schedule.add}
+              onUpdate={schedule.update}
+              onDelete={schedule.remove}
             />
             <TaskList
-              tasks={dailyTasks}
-              filter={filter}
-              onFilterChange={setFilter}
-              onToggle={handleToggle}
+              tasks={tasks.dailyTasks}
+              filter={tasks.filter}
+              onFilterChange={tasks.setFilter}
+              onToggle={tasks.toggle}
               onClickDetail={handleClickDetail}
               onAdd={handleOpenCreate}
+              selectedDate={selectedDate}
             />
           </>
         ) : (
           <CalendarGrid
-            tasks={tasks}
+            tasks={tasks.tasks}
             today={getTodayString()}
             selectedDate={selectedDate}
             onDateClick={(date) => {
@@ -187,18 +124,8 @@ export default function AppPage() {
         <TaskForm
           mode={formMode}
           task={modalTask ?? undefined}
-          onSubmit={
-            formMode === "create"
-              ? handleAdd
-              : (input) =>
-                  handleUpdate({
-                    ...input,
-                    id: modalTask!.id,
-                    createdAt: modalTask!.createdAt,
-                    updatedAt: new Date().toISOString(),
-                  })
-          }
-          onDelete={handleDelete}
+          onSubmit={handleFormSubmit}
+          onDelete={tasks.remove}
           onClose={handleCloseForm}
           onEditMode={() => setFormMode("edit")}
         />

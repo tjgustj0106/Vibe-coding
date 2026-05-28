@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ScheduleEvent } from "../types";
 import ScheduleEventForm from "./ScheduleEventForm";
+
+function getTodayString() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 type ScheduleTimelineProps = {
   date: string;
@@ -30,8 +34,18 @@ export default function ScheduleTimeline({
 }: ScheduleTimelineProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  // 마운트 시 현재 시각 위치로 자동 스크롤
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const scrollTop = (currentMinutes / TOTAL_MINUTES) * TIMELINE_HEIGHT - 100;
+    scrollRef.current.scrollTop = Math.max(0, scrollTop);
+  }, []);
 
   function handleAdd(input: Omit<ScheduleEvent, "id" | "createdAt" | "updatedAt">) {
     onAdd(input);
@@ -52,7 +66,9 @@ export default function ScheduleTimeline({
   return (
     <div className="bg-white rounded-[18px] p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-[#1d1d1f]">📅 오늘 일정</h3>
+        <h3 className="text-sm font-semibold text-[#1d1d1f]">
+          📅 {date === getTodayString() ? "오늘 일정" : `${date} 일정`}
+        </h3>
         <button
           onClick={() => setShowAddForm(true)}
           className="text-xs text-[#0066cc] px-3 py-1 rounded-full border border-[#0066cc]
@@ -62,7 +78,7 @@ export default function ScheduleTimeline({
         </button>
       </div>
 
-      <div className="overflow-y-auto" style={{ height: "300px" }}>
+      <div ref={scrollRef} className="overflow-y-auto" style={{ height: "300px" }}>
         <div className="relative" style={{ height: `${TIMELINE_HEIGHT}px` }}>
           {/* 시간 눈금 */}
           {hours.map((hour) => (
