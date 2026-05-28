@@ -7,10 +7,10 @@ import { ScheduleEvent } from "../../schedule/types";
 const SPAN_COLORS = ["#0066cc", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444"];
 const MAX_BARS = 4;
 
-function spanColor(subject?: string): string {
-  if (!subject) return SPAN_COLORS[0];
+// 과제 ID 기반 색상 — 과제마다 고유한 색으로 달력에서 구분 가능
+function spanColor(taskId: string): string {
   let hash = 0;
-  for (const c of subject) hash = (hash * 31 + c.charCodeAt(0)) % SPAN_COLORS.length;
+  for (const c of taskId) hash = (hash * 31 + c.charCodeAt(0)) % SPAN_COLORS.length;
   return SPAN_COLORS[hash];
 }
 
@@ -90,7 +90,7 @@ export default function CalendarDayCell({
                     ? "rounded-r-full mr-0.5"
                     : ""
                 } ${task.status === "done" ? "opacity-40" : ""}`}
-                style={{ backgroundColor: spanColor(task.subject) }}
+                style={{ backgroundColor: spanColor(task.id) }}
               />
             );
           })}

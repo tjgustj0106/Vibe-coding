@@ -117,6 +117,7 @@ export default function AppPage() {
               setSelectedDate(date);
               setCurrentView("daily");
             }}
+            onAddEvent={schedule.add}
           />
         )}
       </main>

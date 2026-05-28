@@ -12,6 +12,7 @@ type CalendarGridProps = {
   today: string;
   selectedDate: string;
   onDateClick: (date: string) => void;
+  onAddEvent?: (input: Omit<ScheduleEvent, "id" | "createdAt" | "updatedAt">) => void;
 };
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -54,9 +55,9 @@ function computeWeekSpanTasks(
       weekStart <= t.dueDate
   );
 
-  // createdAt 오름차순 정렬 → 슬롯 번호 일관성 보장
+  // 마감일 오름차순 정렬 → 급한 과제가 위(낮은 슬롯)에 표시
   const sorted = [...spanning].sort((a, b) =>
-    a.createdAt.localeCompare(b.createdAt)
+    (a.dueDate ?? "9999-99-99").localeCompare(b.dueDate ?? "9999-99-99")
   );
   const slotMap = new Map(sorted.map((t, i) => [t.id, i]));
 
@@ -88,6 +89,7 @@ export default function CalendarGrid({
   today,
   selectedDate,
   onDateClick,
+  onAddEvent,
 }: CalendarGridProps) {
   const [year, setYear] = useState(() => Number(today.slice(0, 4)));
   const [month, setMonth] = useState(() => Number(today.slice(5, 7)) - 1);
@@ -188,6 +190,7 @@ export default function CalendarGrid({
             onDateClick(modalDate);
             setModalDate(null);
           }}
+          onAddEvent={onAddEvent}
         />
       )}
     </div>
