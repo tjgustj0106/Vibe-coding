@@ -109,7 +109,7 @@ test("AC-004: 항목 클릭 시 상세 모달이 열린다", async ({ page }) =>
 // When  사용자가 월간 뷰를 열면
 // Then  마감일에 해당 항목이 달력에 표시된다
 // ---------------------------------------------------------------------------
-test("AC-005: 월간 달력에서 오늘 마감 항목이 표시된다", async ({ page }) => {
+test("AC-005: 월간 달력에서 오늘 마감 항목이 표시되고 모달로 확인된다", async ({ page }) => {
   const today = new Date().toISOString().slice(0, 10);
 
   await page.getByTestId("open-task-form").click();
@@ -120,12 +120,13 @@ test("AC-005: 월간 달력에서 오늘 마감 항목이 표시된다", async (
   // 월간 뷰로 전환
   await page.getByRole("button", { name: "월간 뷰" }).click();
 
-  // 오늘 날짜 셀에 항목 미리보기가 표시됨
-  // CalendarDayCell: aria-label="${date}, 할 일 N개"
-  const todayCell = page.getByRole("button", { name: new RegExp(`${today}`) });
+  // 오늘 날짜 셀 존재 확인 (aria-label에 날짜 + 할 일 수 포함)
+  const todayCell = page.getByRole("button", { name: new RegExp(`${today}.*할 일 1개`) });
   await expect(todayCell).toBeVisible();
-  // 셀 내부에 "달력 표시" 텍스트 표시 (truncate로 일부 잘릴 수 있음)
-  await expect(todayCell).toContainText("달력 표시");
+
+  // 셀 클릭 → 모달이 열리고 과제 제목 표시
+  await todayCell.click();
+  await expect(page.getByText("달력 표시 과제")).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------

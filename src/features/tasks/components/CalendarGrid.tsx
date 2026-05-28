@@ -2,10 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { Task } from "../types";
-import CalendarDayCell from "./CalendarDayCell";
+import { ScheduleEvent } from "../../schedule/types";
+import CalendarDayCell, { SpanTask } from "./CalendarDayCell";
+import CalendarDayModal from "./CalendarDayModal";
+import { getTasksForDate } from "../utils";
 
 type CalendarGridProps = {
   tasks: Task[];
+  events: ScheduleEvent[];
   today: string;
   selectedDate: string;
   onDateClick: (date: string) => void;
@@ -14,35 +18,72 @@ type CalendarGridProps = {
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function getMonthGrid(year: number, month: number): string[] {
-  const firstDay = new Date(year, month, 1).getDay(); // 0=일
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: string[] = [];
-
   for (let i = 0; i < firstDay; i++) cells.push("");
   for (let d = 1; d <= daysInMonth; d++) {
     const mm = String(month + 1).padStart(2, "0");
     const dd = String(d).padStart(2, "0");
     cells.push(`${year}-${mm}-${dd}`);
   }
-  // 마지막 줄 채우기
   while (cells.length % 7 !== 0) cells.push("");
   return cells;
 }
 
-function getTasksForCalendarDate(tasks: Task[], date: string): Task[] {
-  return tasks.filter((t) => t.dueDate === date);
+/**
+ * 특정 날짜에 걸쳐있는 과제(기간 바 표시용)를 계산한다.
+ * - 기간: createdAt ~ dueDate
+ * - isStart: 실제 시작일 → 왼쪽 둥근 캡
+ * - isEnd: 실제 마감일 → 오른쪽 둥근 캡
+ * - 주 경계(column=0/6)에서는 캡 없이 연결되는 것처럼 보임
+ */
+function getSpanTasksForCell(
+  tasks: Task[],
+  date: string,
+  column: number
+): SpanTask[] {
+  if (!date) return [];
+  return tasks
+    .filter(
+      (t) =>
+        t.dueDate &&
+        t.createdAt.slice(0, 10) <= date &&
+        date <= t.dueDate
+    )
+    .map((t) => ({
+      task: t,
+      isStart: date === t.createdAt.slice(0, 10),
+      isEnd: date === t.dueDate,
+    }));
+}
+
+function getEventsForDate(events: ScheduleEvent[], date: string): ScheduleEvent[] {
+  return events.filter((e) => e.date === date);
 }
 
 export default function CalendarGrid({
   tasks,
+  events,
   today,
   selectedDate,
   onDateClick,
 }: CalendarGridProps) {
   const [year, setYear] = useState(() => Number(today.slice(0, 4)));
   const [month, setMonth] = useState(() => Number(today.slice(5, 7)) - 1);
+  const [modalDate, setModalDate] = useState<string | null>(null);
 
   const cells = useMemo(() => getMonthGrid(year, month), [year, month]);
+
+  // 모달용 데이터
+  const modalTasks = useMemo(
+    () => (modalDate ? getTasksForDate(tasks, modalDate) : []),
+    [tasks, modalDate]
+  );
+  const modalEvents = useMemo(
+    () => (modalDate ? getEventsForDate(events, modalDate) : []),
+    [events, modalDate]
+  );
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear((y) => y - 1); }
@@ -93,11 +134,26 @@ export default function CalendarGrid({
             date={date}
             today={today}
             selectedDate={selectedDate}
-            tasks={date ? getTasksForCalendarDate(tasks, date) : []}
-            onClick={onDateClick}
+            spanTasks={date ? getSpanTasksForCell(tasks, date, i % 7) : []}
+            dayEvents={date ? getEventsForDate(events, date) : []}
+            onClick={setModalDate}
           />
         ))}
       </div>
+
+      {/* 날짜 상세 모달 */}
+      {modalDate && (
+        <CalendarDayModal
+          date={modalDate}
+          tasks={modalTasks}
+          events={modalEvents}
+          onClose={() => setModalDate(null)}
+          onGoToDay={() => {
+            onDateClick(modalDate);
+            setModalDate(null);
+          }}
+        />
+      )}
     </div>
   );
 }

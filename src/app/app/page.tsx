@@ -110,6 +110,7 @@ export default function AppPage() {
         ) : (
           <CalendarGrid
             tasks={tasks.tasks}
+            events={schedule.events}
             today={getTodayString()}
             selectedDate={selectedDate}
             onDateClick={(date) => {
