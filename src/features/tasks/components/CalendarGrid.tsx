@@ -5,7 +5,6 @@ import { Task } from "../types";
 import { ScheduleEvent } from "../../schedule/types";
 import CalendarDayCell, { SpanTask } from "./CalendarDayCell";
 import CalendarDayModal from "./CalendarDayModal";
-import { getTasksForDate } from "../utils";
 
 type CalendarGridProps = {
   tasks: Task[];
@@ -75,11 +74,16 @@ export default function CalendarGrid({
 
   const cells = useMemo(() => getMonthGrid(year, month), [year, month]);
 
-  // 모달용 데이터
-  const modalTasks = useMemo(
-    () => (modalDate ? getTasksForDate(tasks, modalDate) : []),
-    [tasks, modalDate]
-  );
+  // 모달용 데이터: 바 표시 기준과 동일하게 span 로직 사용
+  // (getTasksForDate는 과거 날짜를 제외하므로 달력 바와 불일치 발생)
+  const modalTasks = useMemo(() => {
+    if (!modalDate) return [];
+    return tasks.filter((t) =>
+      t.dueDate
+        ? t.createdAt.slice(0, 10) <= modalDate && modalDate <= t.dueDate
+        : t.createdAt.slice(0, 10) === modalDate
+    );
+  }, [tasks, modalDate]);
   const modalEvents = useMemo(
     () => (modalDate ? getEventsForDate(events, modalDate) : []),
     [events, modalDate]
