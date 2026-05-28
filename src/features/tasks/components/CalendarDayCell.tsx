@@ -61,12 +61,12 @@ export default function CalendarDayCell({
 
       {/* 과제 기간 바 + 일정 점 */}
       <div className="w-full flex flex-col gap-0.5 overflow-hidden">
-        {/* 과제 기간 바 (최대 2개) */}
-        {spanTasks.slice(0, 2).map(({ task, isStart, isEnd }) => (
+        {/* 과제 기간 바 (최대 3개, 초과 시 +N 표시) */}
+        {spanTasks.slice(0, 3).map(({ task, isStart, isEnd }) => (
           <div
             key={task.id}
             title={task.title}
-            className={`h-1.5 flex-shrink-0 ${
+            className={`h-1 flex-shrink-0 ${
               isStart && isEnd
                 ? "rounded-full mx-0.5"
                 : isStart
@@ -78,6 +78,11 @@ export default function CalendarDayCell({
             style={{ backgroundColor: spanColor(task.subject) }}
           />
         ))}
+        {spanTasks.length > 3 && (
+          <span className="text-[7px] text-[#6e6e73] leading-none px-0.5">
+            +{spanTasks.length - 3}
+          </span>
+        )}
 
         {/* 시간 일정 점 (최대 3개) */}
         {dayEvents.length > 0 && (
