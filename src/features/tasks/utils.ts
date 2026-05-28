@@ -11,11 +11,7 @@ export function getTasksForDate(tasks: Task[], selectedDate: string): Task[] {
       return t.createdAt.slice(0, 10) === selectedDate;
     }
     // 달력 바와 동일한 범위: createdAt ≤ selectedDate ≤ dueDate
-    if (t.createdAt.slice(0, 10) > selectedDate || selectedDate > t.dueDate) return false;
-    // 완료 항목: 완료한 날짜에만 표시
-    if (t.status === "done") {
-      return t.updatedAt.slice(0, 10) === selectedDate;
-    }
-    return true;
+    // 완료 여부와 관계없이 범위 내 날짜에 표시 (필터 탭으로 전체/미완료/완료 구분)
+    return t.createdAt.slice(0, 10) <= selectedDate && selectedDate <= t.dueDate;
   });
 }

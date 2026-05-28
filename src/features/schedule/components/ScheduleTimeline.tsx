@@ -67,7 +67,12 @@ export default function ScheduleTimeline({
     <div className="bg-white rounded-[18px] p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-[#1d1d1f]">
-          📅 {date === getTodayString() ? "오늘 일정" : `${date} 일정`}
+          📅 {date === getTodayString()
+            ? "오늘 일정"
+            : new Date(date + "T00:00:00").toLocaleDateString("ko-KR", {
+                month: "long",
+                day: "numeric",
+              }) + " 일정"}
         </h3>
         <button
           onClick={() => setShowAddForm(true)}
