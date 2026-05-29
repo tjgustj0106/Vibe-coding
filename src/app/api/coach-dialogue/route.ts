@@ -49,16 +49,22 @@ export async function POST(req: NextRequest) {
     const nicknameContext = safeNickname ? `사용자 호칭: "${safeNickname}"` : "호칭: 없음";
     const situationContext = `상황: ${situationLabel[situation]}`;
 
-    const prompt = `당신은 ${safePersonality || "친근한 친구"} 성격의 캐릭터입니다.
+    const prompt = `너는 다음 성격과 말투를 가진 코치 캐릭터야: "${safePersonality || "친근한 친구"}"
 ${situationContext}
 ${taskContext}
 ${nicknameContext}
 
-위 상황에 맞게 짧은 한 문장으로 동기부여 메시지를 작성해주세요.
-- 이모지를 1개 이하로 사용하세요
-- 반말 또는 설정된 말투를 유지하세요
-- 50자 이내로 작성하세요
-- 오직 대사 텍스트만 반환하세요 (따옴표 없이)`;
+위 상황에 맞는 짧은 한 문장 대사를 써줘.
+
+[말투 규칙 — 반드시 지킬 것]
+- 성격 설명에 적힌 말투·어조를 강하게 반영해
+  예) 할아버지면 "~하거라", "~해야지" 같은 할아버지 말투
+  예) 엄격하면 단호하고 간결하게, 다정하면 따뜻하게
+  예) 선생님이면 교훈적으로, 친구면 편하게
+- 성격에 맞는 문체(반말/높임/할아버지체 등)를 자연스럽게 선택해
+- 이모지 1개 이하
+- 50자 이내
+- 대사 텍스트만 반환 (따옴표 없이)`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
