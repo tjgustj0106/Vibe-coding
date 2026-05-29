@@ -9,15 +9,27 @@ type RequestBody = {
   personality?: string;
 };
 
+const VALID_SITUATIONS: CoachSituation[] = [
+  "d3", "d2", "d1", "dday", "overdue", "complete", "weekly-high", "weekly-low",
+];
+
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as RequestBody;
   const { situation, taskTitle, nickname, personality } = body;
+
+  // 입력 검증
+  if (!VALID_SITUATIONS.includes(situation)) {
+    return NextResponse.json({ error: "Invalid situation" }, { status: 400 });
+  }
+  const safeTitle = (taskTitle ?? "").slice(0, 50);
+  const safeNickname = (nickname ?? "").slice(0, 20);
+  const safePersonality = (personality ?? "").slice(0, 100);
 
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   // API key가 없으면 즉시 프리셋 반환
   if (!apiKey) {
-    const text = getPresetDialogue(situation, taskTitle, nickname);
+    const text = getPresetDialogue(situation, safeTitle, safeNickname);
     return NextResponse.json({ text, source: "preset" });
   }
 
@@ -33,11 +45,11 @@ export async function POST(req: NextRequest) {
       "weekly-low": "이번 주 완료율 30% 이하",
     };
 
-    const taskContext = taskTitle ? `과제명: "${taskTitle}"` : "";
-    const nicknameContext = nickname ? `사용자 호칭: "${nickname}"` : "호칭: 없음";
+    const taskContext = safeTitle ? `과제명: "${safeTitle}"` : "";
+    const nicknameContext = safeNickname ? `사용자 호칭: "${safeNickname}"` : "호칭: 없음";
     const situationContext = `상황: ${situationLabel[situation]}`;
 
-    const prompt = `당신은 ${personality ?? "친근한 친구"} 성격의 캐릭터입니다.
+    const prompt = `당신은 ${safePersonality || "친근한 친구"} 성격의 캐릭터입니다.
 ${situationContext}
 ${taskContext}
 ${nicknameContext}
@@ -77,7 +89,7 @@ ${nicknameContext}
     return NextResponse.json({ text, source: "openrouter" });
   } catch {
     // 실패 시 프리셋 fallback
-    const text = getPresetDialogue(situation, taskTitle, nickname);
+    const text = getPresetDialogue(situation, safeTitle, safeNickname);
     return NextResponse.json({ text, source: "preset" });
   }
 }
