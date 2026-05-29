@@ -39,14 +39,20 @@ export default function ScheduleTimeline({
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  // 마운트 시 현재 시각 위치로 자동 스크롤
+  // 오늘 날짜일 때 현재 시각 위치로 자동 스크롤
   useEffect(() => {
-    if (!scrollRef.current) return;
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const scrollTop = (currentMinutes / TOTAL_MINUTES) * TIMELINE_HEIGHT - 100;
-    scrollRef.current.scrollTop = Math.max(0, scrollTop);
-  }, []);
+    if (date !== getTodayString()) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    // requestAnimationFrame으로 레이아웃 완료 후 스크롤
+    const raf = requestAnimationFrame(() => {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const scrollTop = (currentMinutes / TOTAL_MINUTES) * TIMELINE_HEIGHT - 80;
+      el.scrollTop = Math.max(0, scrollTop);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [date]);
 
   function handleAdd(input: Omit<ScheduleEvent, "id" | "createdAt" | "updatedAt">) {
     onAdd(input);
